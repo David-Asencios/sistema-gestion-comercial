@@ -1,0 +1,21 @@
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Maven
+backend/target/
+
+# Angular / Node.js (para el frontend futuro)
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Variables de entorno y credenciales
+.env
+.env.*
+!.env.example
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
