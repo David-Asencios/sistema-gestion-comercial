@@ -33,6 +33,22 @@ public class DetalleCotizacionService {
         return detalleRepository.save(detalle);
     }
 
+    public DetalleCotizacion actualizarDetalleCotizacion(Long id, DetalleCotizacion detalle){
+
+        DetalleCotizacion detalleExistente = buscarDetallePorId(id);
+
+        detalleExistente.setDescripcion(detalle.getDescripcion());
+        detalleExistente.setCantidad(detalle.getCantidad());
+        detalleExistente.setPrecioUnitario(detalle.getPrecioUnitario());
+        detalleExistente.setSubtotal(detalle.getSubtotal());
+        detalleExistente.setCotizacion(detalle.getCotizacion());
+        detalleExistente.setServicio(detalle.getServicio());
+        detalleExistente.setProducto(detalle.getProducto());
+
+        return detalleRepository.save(detalleExistente);
+
+    }
+
     public void eliminarDetalle(Long id) {
         DetalleCotizacion detalle = buscarDetallePorId(id);
         detalleRepository.delete(detalle);

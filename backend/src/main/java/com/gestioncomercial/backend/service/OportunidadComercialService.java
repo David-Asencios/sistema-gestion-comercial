@@ -33,6 +33,20 @@ public class OportunidadComercialService {
         return oportunidadRepository.save(oportunidad);
     }
 
+    public OportunidadComercial actualizarOportunidadComercial(Long id, OportunidadComercial oportunidad){
+
+        OportunidadComercial oportunidadExistente = buscarOportunidadPorId(id);
+
+        oportunidadExistente.setTitulo(oportunidad.getTitulo());
+        oportunidadExistente.setDescripcion(oportunidad.getDescripcion());
+        oportunidadExistente.setCanalOrigen(oportunidad.getCanalOrigen());
+        oportunidadExistente.setEtapa(oportunidad.getEtapa());
+        oportunidadExistente.setObservaciones(oportunidad.getObservaciones());
+        oportunidadExistente.setCliente(oportunidad.getCliente());
+
+        return oportunidadRepository.save(oportunidadExistente);
+    }
+
     public void eliminarOportunidad(Long id) {
         OportunidadComercial oportunidad = buscarOportunidadPorId(id);
         oportunidadRepository.delete(oportunidad);

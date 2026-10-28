@@ -36,6 +36,21 @@ public class ClienteService {
 
     }
 
+    public Cliente actualizarCliente(Long id, Cliente cliente){
+
+        Cliente actual = buscarClientePorId(id);
+
+        actual.setRuc(cliente.getRuc());
+        actual.setRazonSocial(cliente.getRazonSocial());
+        actual.setNombreContacto(cliente.getNombreContacto());
+        actual.setTelefono(cliente.getTelefono());
+        actual.setCorreo(cliente.getCorreo());
+        actual.setDireccion(cliente.getDireccion());
+        actual.setActivo(cliente.getActivo());
+
+        return clienteRepository.save(actual);
+
+    }
 
 
 }

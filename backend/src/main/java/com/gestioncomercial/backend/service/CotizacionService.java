@@ -32,6 +32,23 @@ public class CotizacionService {
         return cotizacionRepository.save(cotizacion);
     }
 
+    public Cotizacion actualizarCotizacion(Long id, Cotizacion cotizacion){
+
+        Cotizacion cotizacionExistente = buscarCotizacionPorId(id);
+
+        cotizacionExistente.setCodigo(cotizacion.getCodigo());
+        cotizacionExistente.setFechaEmision(cotizacion.getFechaEmision());
+        cotizacionExistente.setFechaVencimiento(cotizacion.getFechaVencimiento());
+        cotizacionExistente.setEstado(cotizacion.getEstado());
+        cotizacionExistente.setSubtotal(cotizacion.getSubtotal());
+        cotizacionExistente.setIgv(cotizacion.getIgv());
+        cotizacionExistente.setTotal(cotizacion.getTotal());
+        cotizacionExistente.setOportunidad(cotizacion.getOportunidad());
+
+        return cotizacionRepository.save(cotizacionExistente);
+
+    }
+
     public void eliminarCotizacion(Long id) {
         Cotizacion cotizacion = buscarCotizacionPorId(id);
         cotizacionRepository.delete(cotizacion);

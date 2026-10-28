@@ -36,5 +36,19 @@ public class ServicioService {
         Servicio servicio = buscarServicioPorId(id);
         servicioRepository.delete(servicio);
     }
+
+    public Servicio actualizarServicio(Long id, Servicio servicio){
+
+        Servicio servicioExistente = buscarServicioPorId(id);
+
+        servicioExistente.setNombre(servicio.getNombre());
+        servicioExistente.setDescripcion(servicio.getDescripcion());
+        servicioExistente.setPrecioReferencial( servicio.getPrecioReferencial());
+        servicioExistente.setActivo(servicio.getActivo());
+
+        return servicioRepository.save(servicioExistente);
+    }
+
+
 }
 
