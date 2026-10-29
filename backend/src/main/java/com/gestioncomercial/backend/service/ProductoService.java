@@ -1,6 +1,7 @@
 package com.gestioncomercial.backend.service;
 
 import com.gestioncomercial.backend.entity.Producto;
+import com.gestioncomercial.backend.exception.RecursoNoEncontradoException;
 import com.gestioncomercial.backend.repository.ProductoRepository;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +23,7 @@ public class ProductoService {
     public Producto buscarProductoPorId(Long id) {
         return productoRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new RecursoNoEncontradoException(
                                 "Producto no encontrado con ID: " + id
                         )
                 );

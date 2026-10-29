@@ -1,56 +1,112 @@
+
 package com.gestioncomercial.backend.service;
 
 import com.gestioncomercial.backend.entity.Cotizacion;
+import com.gestioncomercial.backend.entity.EstadoCotizacion;
+import com.gestioncomercial.backend.exception.RecursoNoEncontradoException;
 import com.gestioncomercial.backend.repository.CotizacionRepository;
+import com.gestioncomercial.backend.repository.DetalleCotizacionRepository;
+import com.gestioncomercial.backend.repository.OportunidadComercialRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
 public class CotizacionService {
 
     private final CotizacionRepository cotizacionRepository;
+    private final OportunidadComercialRepository oportunidadRepository;
+    private final DetalleCotizacionRepository detalleCotizacionRepository;
 
-    public CotizacionService(CotizacionRepository cotizacionRepository) {
+    public CotizacionService(
+            CotizacionRepository cotizacionRepository,
+            OportunidadComercialRepository oportunidadRepository,
+            DetalleCotizacionRepository detalleCotizacionRepository) {
+
         this.cotizacionRepository = cotizacionRepository;
+        this.oportunidadRepository = oportunidadRepository;
+        this.detalleCotizacionRepository = detalleCotizacionRepository;
     }
 
     public List<Cotizacion> listarCotizaciones() {
-        return cotizacionRepository.findAll();
+        return cotizacionRepository.listarConOportunidad();
     }
 
     public Cotizacion buscarCotizacionPorId(Long id) {
-        return cotizacionRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Cotización no encontrada con ID: " + id
-                        )
-                );
+        return cotizacionRepository.buscarPorIdConOportunidad(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Cotización no encontrada con ID: " + id));
     }
 
+    @Transactional
     public Cotizacion guardarCotizacion(Cotizacion cotizacion) {
+        validarOportunidad(cotizacion);
+
+        // Los importes comienzan en cero y se calculan con los detalles.
+        cotizacion.setSubtotal(BigDecimal.ZERO);
+        cotizacion.setIgv(BigDecimal.ZERO);
+        cotizacion.setTotal(BigDecimal.ZERO);
+
         return cotizacionRepository.save(cotizacion);
     }
 
-    public Cotizacion actualizarCotizacion(Long id, Cotizacion cotizacion){
+    @Transactional
+    public Cotizacion actualizarCotizacion(Long id, Cotizacion cotizacion) {
+        Cotizacion existente = buscarCotizacionPorId(id);
 
-        Cotizacion cotizacionExistente = buscarCotizacionPorId(id);
+        validarOportunidad(cotizacion);
 
-        cotizacionExistente.setCodigo(cotizacion.getCodigo());
-        cotizacionExistente.setFechaEmision(cotizacion.getFechaEmision());
-        cotizacionExistente.setFechaVencimiento(cotizacion.getFechaVencimiento());
-        cotizacionExistente.setEstado(cotizacion.getEstado());
-        cotizacionExistente.setSubtotal(cotizacion.getSubtotal());
-        cotizacionExistente.setIgv(cotizacion.getIgv());
-        cotizacionExistente.setTotal(cotizacion.getTotal());
-        cotizacionExistente.setOportunidad(cotizacion.getOportunidad());
+        existente.setCodigo(cotizacion.getCodigo());
+        existente.setFechaEmision(cotizacion.getFechaEmision());
+        existente.setFechaVencimiento(cotizacion.getFechaVencimiento());
+        existente.setEstado(cotizacion.getEstado());
+        existente.setOportunidad(
+                oportunidadRepository.findById(
+                                cotizacion.getOportunidad().getId())
+                        .orElseThrow(() -> new RecursoNoEncontradoException(
+                                "Oportunidad comercial no encontrada con ID: "
+                                        + cotizacion.getOportunidad().getId()))
+        );
 
-        return cotizacionRepository.save(cotizacionExistente);
-
+        // No modificar subtotal, IGV ni total desde la solicitud.
+        return cotizacionRepository.save(existente);
     }
 
+    @Transactional
     public void eliminarCotizacion(Long id) {
         Cotizacion cotizacion = buscarCotizacionPorId(id);
+
+        if (cotizacion.getEstado() != EstadoCotizacion.BORRADOR) {
+            throw new IllegalArgumentException(
+                    "Solo se pueden eliminar cotizaciones en estado BORRADOR"
+            );
+        }
+
+        if (detalleCotizacionRepository.existsByCotizacionId(id)) {
+            throw new IllegalArgumentException(
+                    "No se puede eliminar la cotización porque tiene detalles asociados"
+            );
+        }
+
         cotizacionRepository.delete(cotizacion);
+    }
+
+    private void validarOportunidad(Cotizacion cotizacion) {
+        if (cotizacion == null
+                || cotizacion.getOportunidad() == null
+                || cotizacion.getOportunidad().getId() == null) {
+            throw new IllegalArgumentException(
+                    "Debe indicar una oportunidad comercial");
+        }
+
+        Long oportunidadId = cotizacion.getOportunidad().getId();
+
+        if (!oportunidadRepository.existsById(oportunidadId)) {
+            throw new RecursoNoEncontradoException(
+                    "Oportunidad comercial no encontrada con ID: "
+                            + oportunidadId);
+        }
     }
 }

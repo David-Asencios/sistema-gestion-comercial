@@ -3,6 +3,7 @@ package com.gestioncomercial.backend.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
@@ -15,18 +16,20 @@ public class OportunidadComercial {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    @Size(max = 150)
+    @NotBlank(message = "El título de la oportunidad es obligatorio")
+    @Size(max = 150, message = "El título no puede superar los 150 caracteres")
     @Column(nullable = false, length = 150)
     private String titulo;
 
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
+    @NotNull(message = "El canal de origen es obligatorio")
     @Enumerated(EnumType.STRING)
     @Column(name = "canal_origen", nullable = false, length = 30)
     private CanalOrigen canalOrigen;
 
+    @NotNull(message = "La etapa comercial es obligatoria")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private EtapaOportunidad etapa = EtapaOportunidad.NUEVA;

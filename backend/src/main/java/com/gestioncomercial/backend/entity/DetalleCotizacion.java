@@ -30,10 +30,8 @@ public class DetalleCotizacion {
     @Column(name = "precio_unitario", nullable = false, precision = 12, scale = 2)
     private BigDecimal precioUnitario;
 
-    @NotNull
-    @DecimalMin("0.00")
     @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal subtotal;
+    private BigDecimal subtotal = BigDecimal.ZERO;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "cotizacion_id", nullable = false)

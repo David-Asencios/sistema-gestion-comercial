@@ -1,6 +1,8 @@
 package com.gestioncomercial.backend.service;
 
 import com.gestioncomercial.backend.entity.Cliente;
+import com.gestioncomercial.backend.exception.RecursoDuplicadoException;
+import com.gestioncomercial.backend.exception.RecursoNoEncontradoException;
 import com.gestioncomercial.backend.repository.ClienteRepository;
 import org.springframework.stereotype.Service;
 
@@ -15,9 +17,19 @@ public class ClienteService {
         this.clienteRepository = clienteRepository;
     }
 
-    public Cliente guardarCliente(Cliente cliente){
+
+    public Cliente guardarCliente(Cliente cliente) {
+
+        if (clienteRepository.existsByRuc(cliente.getRuc())) {
+            throw new RecursoDuplicadoException(
+                    "Ya existe un cliente registrado con el RUC: "
+                            + cliente.getRuc()
+            );
+        }
+
         return clienteRepository.save(cliente);
     }
+
 
     public List<Cliente> listarClientes(){
         return clienteRepository.findAll();
@@ -25,7 +37,7 @@ public class ClienteService {
 
     public Cliente buscarClientePorId(Long id){
         return clienteRepository.findById(id).orElseThrow(()
-                -> new RuntimeException("Cliente no encontrado con ID: " + id));
+                -> new RecursoNoEncontradoException("Cliente no encontrado con ID: " + id));
     }
 
     public void eliminarCliente(Long id){
@@ -36,9 +48,17 @@ public class ClienteService {
 
     }
 
-    public Cliente actualizarCliente(Long id, Cliente cliente){
+
+    public Cliente actualizarCliente(Long id, Cliente cliente) {
 
         Cliente actual = buscarClientePorId(id);
+
+        if (!actual.getRuc().equals(cliente.getRuc()) && clienteRepository.existsByRuc(cliente.getRuc())) {
+
+            throw new RecursoDuplicadoException(
+                    "Ya existe otro cliente registrado con el RUC: " + cliente.getRuc()
+            );
+        }
 
         actual.setRuc(cliente.getRuc());
         actual.setRazonSocial(cliente.getRazonSocial());
@@ -49,7 +69,6 @@ public class ClienteService {
         actual.setActivo(cliente.getActivo());
 
         return clienteRepository.save(actual);
-
     }
 
 

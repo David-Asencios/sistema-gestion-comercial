@@ -2,7 +2,9 @@
 package com.gestioncomercial.backend.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -23,6 +25,8 @@ public class Producto {
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
+    @NotNull(message = "El precio referencial es obligatorio")
+    @DecimalMin(value = "0.00", message = "El precio no puede ser negativo")
     @Column(name = "precio_referencial", nullable = false, precision = 10, scale = 2)
     private BigDecimal precioReferencial;
 
