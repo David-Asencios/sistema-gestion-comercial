@@ -64,6 +64,7 @@ public class DetalleCotizacionService {
                 "Detalle de cotización no encontrado después de guardarlo"));
     }
 
+
     @Transactional
     public DetalleCotizacion actualizarDetalleCotizacion(
             Long id, DetalleCotizacion detalle) {
@@ -71,7 +72,16 @@ public class DetalleCotizacionService {
         DetalleCotizacion detalleExistente = buscarDetallePorId(id);
         validarDetalle(detalle);
 
-        Long cotizacionAnteriorId = detalleExistente.getCotizacion().getId();
+        Long cotizacionAnteriorId =
+                detalleExistente.getCotizacion().getId();
+
+        Cotizacion cotizacionAnterior =
+                cotizacionRepository.findById(cotizacionAnteriorId)
+                        .orElseThrow(() -> new RecursoNoEncontradoException(
+                                "Cotización no encontrada con ID: "
+                                        + cotizacionAnteriorId));
+
+        validarCotizacionEditable(cotizacionAnterior);
 
         Cotizacion nuevaCotizacion = obtenerCotizacion(detalle);
         validarCotizacionEditable(nuevaCotizacion);
@@ -87,20 +97,18 @@ public class DetalleCotizacionService {
         DetalleCotizacion detalleActualizado =
                 detalleRepository.save(detalleExistente);
 
-        actualizarTotales(nuevaCotizacion);
-
         if (!cotizacionAnteriorId.equals(nuevaCotizacion.getId())) {
-            Cotizacion cotizacionAnterior =
-                    cotizacionRepository.findById(cotizacionAnteriorId)
-                            .orElseThrow(() -> new RecursoNoEncontradoException(
-                                    "Cotización no encontrada con ID: "
-                                            + cotizacionAnteriorId));
-
             actualizarTotales(cotizacionAnterior);
         }
 
-        return detalleActualizado;
+        actualizarTotales(nuevaCotizacion);
+
+        return detalleRepository.buscarPorIdConRelaciones(
+                detalleActualizado.getId()
+        ).orElseThrow(() -> new RecursoNoEncontradoException(
+                "Detalle de cotización no encontrado después de actualizarlo"));
     }
+
 
     @Transactional
     public void eliminarDetalle(Long id) {

@@ -26,4 +26,11 @@ public interface CotizacionRepository extends JpaRepository<Cotizacion,Long> {
     Optional<Cotizacion> buscarPorIdConOportunidad(
             @Param("id") Long id);
 
+    @Query("""
+        SELECT MAX(c.codigo)
+        FROM Cotizacion c
+        WHERE c.codigo LIKE :prefijo
+        """)
+    String obtenerUltimoCodigo(@Param("prefijo") String prefijo);
+
 }

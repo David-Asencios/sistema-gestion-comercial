@@ -11,6 +11,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.Year;
 import java.util.List;
 
 @Service
@@ -42,9 +44,17 @@ public class CotizacionService {
 
     @Transactional
     public Cotizacion guardarCotizacion(Cotizacion cotizacion) {
+
         validarOportunidad(cotizacion);
 
-        // Los importes comienzan en cero y se calculan con los detalles.
+        cotizacion.setCodigo(generarCodigoCotizacion());
+
+        if (cotizacion.getFechaEmision() == null) {
+            cotizacion.setFechaEmision(LocalDate.now());
+        }
+
+        cotizacion.setEstado(EstadoCotizacion.BORRADOR);
+
         cotizacion.setSubtotal(BigDecimal.ZERO);
         cotizacion.setIgv(BigDecimal.ZERO);
         cotizacion.setTotal(BigDecimal.ZERO);
@@ -54,14 +64,20 @@ public class CotizacionService {
 
     @Transactional
     public Cotizacion actualizarCotizacion(Long id, Cotizacion cotizacion) {
+
         Cotizacion existente = buscarCotizacionPorId(id);
+
+        if (existente.getEstado() != EstadoCotizacion.BORRADOR) {
+            throw new IllegalArgumentException(
+                    "Solo se pueden actualizar cotizaciones en estado BORRADOR"
+            );
+        }
 
         validarOportunidad(cotizacion);
 
-        existente.setCodigo(cotizacion.getCodigo());
         existente.setFechaEmision(cotizacion.getFechaEmision());
         existente.setFechaVencimiento(cotizacion.getFechaVencimiento());
-        existente.setEstado(cotizacion.getEstado());
+
         existente.setOportunidad(
                 oportunidadRepository.findById(
                                 cotizacion.getOportunidad().getId())
@@ -70,8 +86,42 @@ public class CotizacionService {
                                         + cotizacion.getOportunidad().getId()))
         );
 
-        // No modificar subtotal, IGV ni total desde la solicitud.
         return cotizacionRepository.save(existente);
+    }
+
+    @Transactional
+    public Cotizacion actualizarEstadoCotizacion(
+            Long id, EstadoCotizacion nuevoEstado) {
+
+        Cotizacion cotizacion = buscarCotizacionPorId(id);
+
+        if (nuevoEstado == null) {
+            throw new IllegalArgumentException(
+                    "Debe indicar el nuevo estado de la cotización");
+        }
+
+        EstadoCotizacion estadoActual = cotizacion.getEstado();
+
+        boolean transicionPermitida = switch (estadoActual) {
+            case BORRADOR -> nuevoEstado == EstadoCotizacion.ENVIADA;
+
+            case ENVIADA ->
+                    nuevoEstado == EstadoCotizacion.ACEPTADA
+                            || nuevoEstado == EstadoCotizacion.RECHAZADA
+                            || nuevoEstado == EstadoCotizacion.VENCIDA;
+
+            case ACEPTADA, RECHAZADA, VENCIDA -> false;
+        };
+
+        if (!transicionPermitida) {
+            throw new IllegalArgumentException(
+                    "No se permite cambiar el estado de "
+                            + estadoActual + " a " + nuevoEstado);
+        }
+
+        cotizacion.setEstado(nuevoEstado);
+
+        return cotizacionRepository.save(cotizacion);
     }
 
     @Transactional
@@ -108,5 +158,24 @@ public class CotizacionService {
                     "Oportunidad comercial no encontrada con ID: "
                             + oportunidadId);
         }
+    }
+
+    private String generarCodigoCotizacion() {
+
+        int anio = Year.now().getValue();
+
+        String prefijo = "COT-" + anio + "-%";
+
+        String ultimoCodigo = cotizacionRepository
+                .obtenerUltimoCodigo(prefijo);
+
+        int siguienteNumero = 1;
+
+        if (ultimoCodigo != null) {
+            String[] partes = ultimoCodigo.split("-");
+            siguienteNumero = Integer.parseInt(partes[2]) + 1;
+        }
+
+        return String.format("COT-%d-%03d", anio, siguienteNumero);
     }
 }

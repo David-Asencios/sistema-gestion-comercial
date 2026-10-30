@@ -1,6 +1,7 @@
 package com.gestioncomercial.backend.controller;
 
 import com.gestioncomercial.backend.entity.Cotizacion;
+import com.gestioncomercial.backend.entity.EstadoCotizacion;
 import com.gestioncomercial.backend.service.CotizacionService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -48,6 +49,17 @@ public class CotizacionController {
             @PathVariable Long id, @Valid @RequestBody Cotizacion cotizacion) {
 
         Cotizacion cotizacionActualizada = cotizacionService.actualizarCotizacion(id,cotizacion);
+
+        return ResponseEntity.ok(cotizacionActualizada);
+    }
+
+    @PatchMapping("/{id}/estado")
+    public ResponseEntity<Cotizacion> actualizarEstadoCotizacion(
+            @PathVariable Long id,
+            @RequestBody EstadoCotizacion nuevoEstado) {
+
+        Cotizacion cotizacionActualizada =
+                cotizacionService.actualizarEstadoCotizacion(id, nuevoEstado);
 
         return ResponseEntity.ok(cotizacionActualizada);
     }
