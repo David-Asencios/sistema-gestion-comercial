@@ -6,6 +6,9 @@
 # Maven
 backend/target/
 
+# Vistas previas generadas de cotizaciones
+output/pdf/
+
 # Angular / Node.js (para el frontend futuro)
 frontend/node_modules/
 frontend/dist/

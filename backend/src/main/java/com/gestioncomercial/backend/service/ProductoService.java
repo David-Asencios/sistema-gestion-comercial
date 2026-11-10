@@ -4,8 +4,10 @@ import com.gestioncomercial.backend.entity.Producto;
 import com.gestioncomercial.backend.exception.RecursoNoEncontradoException;
 import com.gestioncomercial.backend.repository.ProductoRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class ProductoService {
@@ -18,6 +20,13 @@ public class ProductoService {
 
     public List<Producto> listarProductos() {
         return productoRepository.findAll();
+    }
+
+    public Page<Producto> buscarProductos(String texto, Boolean activo, int pagina, int tamano,
+                                         String orden, String direccion) {
+        var solicitud = ConsultaPaginada.pagina(pagina, tamano, orden, direccion,
+                Set.of("id", "nombre", "precioReferencial"));
+        return productoRepository.buscar(ConsultaPaginada.patron(texto), activo, solicitud);
     }
 
     public Producto buscarProductoPorId(Long id) {

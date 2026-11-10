@@ -1,0 +1,601 @@
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Cotización INCOVEC</title>
+
+    <style>
+        /* CONFIGURACIÓN DE PÁGINA */
+
+        @page {
+            size: A4;
+            margin: 28px 30px 88px 30px;
+
+            @bottom-center {
+                content: element(footer);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 10px;
+            color: #263442;
+            margin: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        /* ENCABEZADO CORPORATIVO */
+
+        .header {
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .header td {
+            vertical-align: middle;
+        }
+
+        .logo-cell {
+            width: 22%;
+            text-align: center;
+            border-right: 3px solid #000000;
+            padding: 8px;
+        }
+
+        .logo-image {
+            display: block;
+            width: 84px;
+            height: auto;
+            margin: 0 auto 5px;
+        }
+
+        .logo-text {
+            color: #174A78;
+            font-size: 21px;
+            font-weight: bold;
+            line-height: 1.1;
+        }
+
+        .logo-subtext {
+            color: #174A78;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .company-cell {
+            width: 48%;
+            padding: 5px 12px;
+        }
+
+        .company-name {
+            color: #174A78;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1.35;
+        }
+
+        .company-details {
+            font-size: 9px;
+            line-height: 1.6;
+            color: #354454;
+        }
+
+        .quote-cell {
+            width: 30%;
+            padding-left: 8px;
+        }
+
+        .quote-heading {
+            background-color: #174A78;
+            color: #FFFFFF;
+            text-align: center;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 9px 3px;
+            border: 1px solid #000000;
+        }
+
+        .quote-info {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000000;
+        }
+
+        .quote-info td {
+            border: 1px solid #000000;
+            padding: 7px 4px;
+            font-size: 9px;
+        }
+
+        .quote-info .quote-label {
+            width: 50%;
+            font-weight: bold;
+            text-align: center;
+            background-color: #EDF3F8;
+            color: #174A78;
+        }
+
+        .quote-info .quote-value {
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .blue-line {
+            height: 3px;
+            background-color: #174A78;
+            margin: 10px 0 12px;
+        }
+
+        /* TÍTULOS DE SECCIÓN */
+
+        .section-title {
+            page-break-after: avoid;
+            background-color: #174A78;
+            color: #FFFFFF;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 8px 10px;
+            margin-top: 14px;
+            margin-bottom: 6px;
+        }
+
+        /* DATOS DEL CLIENTE */
+
+        .client-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+
+        .client-table td {
+            border: 1px solid #000000;
+            padding: 7px 8px;
+            font-size: 9px;
+            vertical-align: middle;
+            word-wrap: break-word;
+        }
+
+        .client-table .client-label {
+            width: 18%;
+            font-weight: bold;
+            background-color: #EDF3F8;
+            color: #174A78;
+        }
+
+        .client-table .client-value {
+            width: 32%;
+        }
+
+        /* DETALLE ECONÓMICO */
+
+        .details-table {
+            -fs-table-paginate: paginate;
+            width: 100%;
+            margin-top: 13px;
+            border-collapse: collapse;
+            border-spacing: 0;
+            table-layout: fixed;
+        }
+
+        .details-table th {
+            background-color: #174A78;
+            color: #FFFFFF;
+            border: 1px solid #000000;
+            padding: 9px 5px;
+            text-align: center;
+            font-size: 9px;
+            vertical-align: middle;
+        }
+
+        .details-table td {
+            border: 1px solid #000000;
+            padding: 8px 6px;
+            font-size: 9px;
+            vertical-align: middle;
+        }
+
+        .details-table tbody tr:nth-child(even) {
+            background-color: #F4F7FA;
+        }
+
+        .details-table tr {
+            page-break-inside: avoid;
+        }
+
+        .bank-section {
+            page-break-inside: avoid;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        /* TOTALES */
+
+        .totals {
+            page-break-inside: avoid;
+            width: 48%;
+            margin-left: auto;
+            margin-top: 10px;
+            border-collapse: collapse;
+        }
+
+        .totals td {
+            border: 1px solid #000000;
+            padding: 7px 8px;
+            font-size: 10px;
+        }
+
+        .totals .total-label {
+            background-color: #EDF3F8;
+            color: #174A78;
+            font-weight: bold;
+            width: 55%;
+        }
+
+        .totals .total-value {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .totals .grand-total td {
+            background-color: #174A78;
+            color: #FFFFFF;
+            font-weight: bold;
+            font-size: 11px;
+            padding: 9px 8px;
+        }
+
+        /* ALCANCES Y CONSIDERACIONES */
+
+        .scope-box {
+            page-break-inside: auto;
+            word-wrap: break-word;
+            border: 1px solid #000000;
+            padding: 9px 12px;
+            font-size: 10px;
+            line-height: 1.6;
+            min-height: 45px;
+        }
+
+        .scope-paragraph {
+            margin: 0;
+            min-height: 16px;
+            orphans: 2;
+            widows: 2;
+        }
+
+        /* DATOS BANCARIOS */
+
+        .bank-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .bank-table th {
+            background-color: #EDF3F8;
+            color: #174A78;
+            border: 1px solid #000000;
+            padding: 7px 4px;
+            font-size: 9px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .bank-table td {
+            border: 1px solid #000000;
+            padding: 7px 4px;
+            font-size: 9px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .bank-holder {
+            text-align: center;
+            font-weight: bold;
+            padding: 8px;
+            border: 1px solid #000000;
+            font-size: 9px;
+            color: #174A78;
+        }
+
+        /* CIERRE Y FIRMA */
+
+        .closing {
+            margin-top: 22px;
+            font-size: 10px;
+            line-height: 1.6;
+        }
+
+        .signature {
+            color: #174A78;
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        /* PIE DE PÁGINA */
+
+        .footer {
+            position: running(footer);
+            width: 100%;
+            height: 43px;
+            border-top: 2px solid #000000;
+            padding-top: 9px;
+            text-align: center;
+            color: #174A78;
+            font-size: 9px;
+            font-weight: bold;
+            background-color: #FFFFFF;
+        }
+
+        .footer .separator {
+            color: #9AA9B7;
+            padding: 0 5px;
+        }
+
+        .page-counter {
+            display: block;
+            margin-top: 5px;
+            font-size: 9px;
+            color: #263442;
+        }
+
+        .page-current:before {
+            content: counter(page);
+        }
+
+        .page-total:before {
+            content: counter(pages);
+        }
+
+    </style>
+</head>
+
+<body>
+
+<!-- Declarar el pie antes del contenido permite repetirlo desde la primera página. -->
+<div class="footer">
+    913 637 424 / 995 691 416
+    <span class="separator">|</span>
+    comercial@incovec.com
+    <span class="separator">|</span>
+    www.incovec.com
+    <div class="page-counter">Página <span class="page-current"></span> de <span class="page-total"></span></div>
+</div>
+
+<!-- ENCABEZADO CORPORATIVO -->
+
+<table class="header">
+    <tr>
+        <td class="logo-cell">
+            <img class="logo-image" th:src="${logoDataUri}" alt="Logo de INCOVEC" />
+            <div class="logo-text">INCOVEC</div>
+            <div class="logo-subtext">S.A.C.</div>
+        </td>
+
+        <td class="company-cell">
+            <div class="company-name">
+                INGENIERÍA EN CONTROL,<br/>
+                VERIFICACIÓN Y CERTIFICACIÓN S.A.C.
+            </div>
+
+            <div class="company-details">
+                RUC: 20607812200<br/>
+                Cal. Matier N.º 401, Urb. San Borja Sur,<br/>
+                San Borja, Lima, Perú<br/>
+                913 637 424 / 995 691 416<br/>
+                comercial@incovec.com<br/>
+                www.incovec.com
+            </div>
+        </td>
+
+        <td class="quote-cell">
+            <div class="quote-heading">COTIZACIÓN</div>
+
+            <table class="quote-info">
+                <tr>
+                    <td class="quote-label">N.º</td>
+                    <td class="quote-value"
+                        th:text="${cotizacion.codigo}"></td>
+                </tr>
+
+                <tr>
+                    <td class="quote-label">FECHA</td>
+                    <td class="quote-value"
+                        th:text="${#temporals.format(cotizacion.fechaEmision, 'dd/MM/yy')}"></td>
+                </tr>
+
+                <tr>
+                    <td class="quote-label">VIGENCIA</td>
+                    <td class="quote-value" th:text="${cotizacion.vigenciaDias + ' días'}"></td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<div class="blue-line"></div>
+
+
+<!-- DATOS DEL CLIENTE -->
+
+<div class="section-title">DATOS DEL CLIENTE</div>
+
+<table class="client-table">
+    <tr>
+        <td class="client-label">RAZÓN SOCIAL</td>
+        <td class="client-value"
+            th:text="${cotizacion.oportunidad.cliente.razonSocial}"></td>
+
+        <td class="client-label">RUC</td>
+        <td class="client-value"
+            th:text="${cotizacion.oportunidad.cliente.ruc}"></td>
+    </tr>
+
+    <tr>
+        <td class="client-label">CONTACTO</td>
+        <td class="client-value"
+            th:text="${cotizacion.oportunidad.cliente.nombreContacto}"></td>
+
+        <td class="client-label">TELÉFONO</td>
+        <td class="client-value"
+            th:text="${cotizacion.oportunidad.cliente.telefono}"></td>
+    </tr>
+
+    <tr>
+        <td class="client-label">CORREO</td>
+        <td class="client-value"
+            th:text="${cotizacion.oportunidad.cliente.correo}"></td>
+
+        <td class="client-label">DIRECCIÓN</td>
+        <td class="client-value"
+            th:text="${cotizacion.oportunidad.cliente.direccion}"></td>
+    </tr>
+</table>
+
+
+<!-- DETALLE ECONÓMICO -->
+
+<table class="details-table">
+    <thead>
+    <tr>
+        <th width="6%">ÍTEM</th>
+        <th width="36%">DESCRIPCIÓN</th>
+        <th width="10%">CANTIDAD</th>
+        <th width="16%">PRECIO UNITARIO</th>
+        <th width="16%">DESCUENTO</th>
+        <th width="16%">IMPORTE</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr th:each="detalle, iterStat : ${detalles}">
+        <td class="center"
+            th:text="${iterStat.count}"></td>
+
+        <td th:text="${detalle.descripcion}"></td>
+
+        <td class="center"
+            th:text="${detalle.cantidad}"></td>
+
+        <td class="right"
+            th:text="${'S/ ' + #numbers.formatDecimal(detalle.precioUnitario, 1, 2)}"></td>
+
+        <td class="right"
+            th:text="${'S/ ' + #numbers.formatDecimal(detalle.descuentoTotal, 1, 2)}"></td>
+
+        <td class="right"
+            th:text="${'S/ ' + #numbers.formatDecimal(detalle.subtotal, 1, 2)}"></td>
+    </tr>
+    </tbody>
+</table>
+
+
+<!-- TOTALES -->
+
+<table class="totals">
+    <tr>
+        <td class="total-label">SUBTOTAL</td>
+        <td class="total-value"
+            th:text="${'S/ ' + #numbers.formatDecimal(cotizacion.subtotal, 1, 2)}"></td>
+    </tr>
+
+    <tr>
+        <td class="total-label">IGV (18%)</td>
+        <td class="total-value"
+            th:text="${'S/ ' + #numbers.formatDecimal(cotizacion.igv, 1, 2)}"></td>
+    </tr>
+
+    <tr class="grand-total">
+        <td>TOTAL</td>
+        <td class="right"
+            th:text="${'S/ ' + #numbers.formatDecimal(cotizacion.total, 1, 2)}"></td>
+    </tr>
+</table>
+
+
+<!-- ALCANCES Y CONSIDERACIONES -->
+
+<div class="section-title">ALCANCES Y CONSIDERACIONES</div>
+
+<div class="scope-box">
+    <p class="scope-paragraph" th:each="parrafo : ${alcanceParrafos}" th:text="${parrafo}"></p>
+</div>
+
+
+<!-- DATOS BANCARIOS -->
+
+<div class="bank-section">
+<div class="section-title">DATOS BANCARIOS</div>
+
+<table class="bank-table">
+    <thead>
+    <tr>
+        <th width="22%">ENTIDAD BANCARIA</th>
+        <th width="22%">TIPO DE CUENTA</th>
+        <th width="10%">MONEDA</th>
+        <th width="22%">N.º DE CUENTA</th>
+        <th width="24%">CCI</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr>
+        <td>INTERBANK</td>
+        <td>Cuenta Corriente</td>
+        <td>Soles</td>
+        <td>200-3006335975</td>
+        <td>003-200-003006335975-33</td>
+    </tr>
+
+    <tr>
+        <td>BANCO DE LA NACIÓN</td>
+        <td>Cuenta de Detracciones</td>
+        <td>Soles</td>
+        <td>00072253272</td>
+        <td>00072253272</td>
+    </tr>
+
+    <tr>
+        <td colspan="5" class="bank-holder">
+            Titular: INCOVEC S.A.C. |
+            Detracción: según corresponda a la operación
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+
+<!-- CIERRE Y FIRMA -->
+
+<div class="closing">
+    Agradecemos su confianza y quedamos atentos a sus comentarios.
+    <br/><br/>
+
+    Atentamente,
+
+    <div class="signature">
+        INCOVEC S.A.C.
+    </div>
+</div>
+
+</div>
+
+</body>
+</html>

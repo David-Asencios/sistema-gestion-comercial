@@ -1,6 +1,9 @@
 package com.gestioncomercial.backend.controller;
 
-import com.gestioncomercial.backend.entity.Cliente;
+import com.gestioncomercial.backend.dto.ClienteMapper;
+import com.gestioncomercial.backend.dto.ClienteRequestDTO;
+import com.gestioncomercial.backend.dto.ClienteResponseDTO;
+import com.gestioncomercial.backend.dto.PaginaResponseDTO;
 import com.gestioncomercial.backend.service.ClienteService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -20,32 +23,48 @@ public class ClienteController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Cliente>> listarClientes() {
-        List<Cliente> clientes = clienteService.listarClientes();
+    public ResponseEntity<List<ClienteResponseDTO>> listarClientes() {
+        List<ClienteResponseDTO> clientes = clienteService.listarClientes().stream()
+                .map(ClienteMapper::toResponse).toList();
 
         return ResponseEntity.ok(clientes);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Cliente> buscarClientePorId( @PathVariable Long id) {
+    @GetMapping("/buscar")
+    public ResponseEntity<PaginaResponseDTO<ClienteResponseDTO>> buscarClientes(
+            @RequestParam(required = false) String texto,
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamano,
+            @RequestParam(defaultValue = "id") String orden,
+            @RequestParam(defaultValue = "asc") String direccion) {
+        var resultado = clienteService.buscarClientes(texto, activo, pagina, tamano, orden, direccion)
+                .map(ClienteMapper::toResponse);
+        return ResponseEntity.ok(PaginaResponseDTO.desde(resultado));
+    }
 
-        Cliente cliente = clienteService.buscarClientePorId(id);
+    @GetMapping("/{id}")
+    public ResponseEntity<ClienteResponseDTO> buscarClientePorId( @PathVariable Long id) {
+
+        ClienteResponseDTO cliente = ClienteMapper.toResponse(clienteService.buscarClientePorId(id));
 
         return ResponseEntity.ok(cliente);
     }
 
     @PostMapping
-    public ResponseEntity<Cliente> guardarCliente( @Valid @RequestBody Cliente cliente) {
+    public ResponseEntity<ClienteResponseDTO> guardarCliente( @Valid @RequestBody ClienteRequestDTO cliente) {
 
-        Cliente clienteGuardado = clienteService.guardarCliente(cliente);
+        ClienteResponseDTO clienteGuardado = ClienteMapper.toResponse(
+                clienteService.guardarCliente(ClienteMapper.toEntity(cliente)));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(clienteGuardado);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Cliente> actualizarCliente( @PathVariable Long id, @Valid @RequestBody Cliente cliente) {
+    public ResponseEntity<ClienteResponseDTO> actualizarCliente( @PathVariable Long id, @Valid @RequestBody ClienteRequestDTO cliente) {
 
-        Cliente actual = clienteService.actualizarCliente(id,cliente);
+        ClienteResponseDTO actual = ClienteMapper.toResponse(
+                clienteService.actualizarCliente(id, ClienteMapper.toEntity(cliente)));
 
         return ResponseEntity.ok(actual);
     }

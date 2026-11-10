@@ -22,6 +22,12 @@ public class Cotizacion {
     @Column(name = "fecha_vencimiento")
     private LocalDate fechaVencimiento;
 
+    @Column(name = "vigencia_dias", nullable = false)
+    private Integer vigenciaDias = 15;
+
+    @Column(name = "alcance_servicio", columnDefinition = "TEXT")
+    private String alcanceServicio;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EstadoCotizacion estado = EstadoCotizacion.BORRADOR;
@@ -112,5 +118,21 @@ public class Cotizacion {
 
     public void setOportunidad(OportunidadComercial oportunidad) {
         this.oportunidad = oportunidad;
+    }
+
+    public Integer getVigenciaDias() {
+        return vigenciaDias;
+    }
+
+    public void setVigenciaDias(Integer vigenciaDias) {
+        this.vigenciaDias = vigenciaDias;
+    }
+
+    public String getAlcanceServicio() {
+        return alcanceServicio;
+    }
+
+    public void setAlcanceServicio(String alcanceServicio) {
+        this.alcanceServicio = alcanceServicio;
     }
 }

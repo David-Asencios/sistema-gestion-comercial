@@ -5,8 +5,11 @@ import com.gestioncomercial.backend.exception.RecursoDuplicadoException;
 import com.gestioncomercial.backend.exception.RecursoNoEncontradoException;
 import com.gestioncomercial.backend.repository.ClienteRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class ClienteService {
@@ -20,7 +23,8 @@ public class ClienteService {
 
     public Cliente guardarCliente(Cliente cliente) {
 
-        if (clienteRepository.existsByRuc(cliente.getRuc())) {
+        cliente.setRuc(normalizarRuc(cliente.getRuc()));
+        if (cliente.getRuc() != null && clienteRepository.existsByRuc(cliente.getRuc())) {
             throw new RecursoDuplicadoException(
                     "Ya existe un cliente registrado con el RUC: "
                             + cliente.getRuc()
@@ -33,6 +37,13 @@ public class ClienteService {
 
     public List<Cliente> listarClientes(){
         return clienteRepository.findAll();
+    }
+
+    public Page<Cliente> buscarClientes(String texto, Boolean activo, int pagina, int tamano,
+                                       String orden, String direccion) {
+        var solicitud = ConsultaPaginada.pagina(pagina, tamano, orden, direccion,
+                Set.of("id", "razonSocial", "ruc", "nombreContacto", "activo"));
+        return clienteRepository.buscar(ConsultaPaginada.patron(texto), activo, solicitud);
     }
 
     public Cliente buscarClientePorId(Long id){
@@ -53,7 +64,10 @@ public class ClienteService {
 
         Cliente actual = buscarClientePorId(id);
 
-        if (!actual.getRuc().equals(cliente.getRuc()) && clienteRepository.existsByRuc(cliente.getRuc())) {
+        cliente.setRuc(normalizarRuc(cliente.getRuc()));
+        if (cliente.getRuc() != null
+                && !Objects.equals(actual.getRuc(), cliente.getRuc())
+                && clienteRepository.existsByRuc(cliente.getRuc())) {
 
             throw new RecursoDuplicadoException(
                     "Ya existe otro cliente registrado con el RUC: " + cliente.getRuc()
@@ -69,6 +83,10 @@ public class ClienteService {
         actual.setActivo(cliente.getActivo());
 
         return clienteRepository.save(actual);
+    }
+
+    private String normalizarRuc(String ruc) {
+        return ruc == null || ruc.isBlank() ? null : ruc.trim();
     }
 
 

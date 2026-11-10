@@ -1,0 +1,1660 @@
+{
+  "info": {
+    "name": "Sistema de Gestión Comercial - Flujo integrado",
+    "description": "Ejecutar la colección completa en orden. Crea datos de demostración: un cliente, una oportunidad, un servicio, un producto, tres cotizaciones y cuatro detalles. Captura IDs de respuestas; no usa registros existentes ni elimina datos. No contiene credenciales. Vencimiento real de una ENVIADA se prueba en Java mediante una fecha controlada en H2; la colección comprueba borrador vencido y vencimiento prematuro.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 Preparación",
+      "item": [
+        {
+          "name": "01 Crear cliente de demostración",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/clientes",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razonSocial\": \"POSTMAN {{runId}}\",\n  \"nombreContacto\": \"Contacto de pruebas\",\n  \"correo\": \"pruebas@example.com\",\n  \"telefono\": \"999999999\",\n  \"direccion\": \"Lima, Perú\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "[\"clienteId\",\"oportunidadId\",\"servicioId\",\"productoId\",\"cotizacionId\",\"codigoCotizacion\",\"detalleServicioId\",\"detalleProductoId\",\"rechazoId\",\"caducadaId\"].forEach(key => pm.collectionVariables.unset(key));",
+                  "pm.collectionVariables.set(\"runId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "const pasada = new Date();",
+                  "pasada.setUTCDate(pasada.getUTCDate() - 45);",
+                  "pm.collectionVariables.set(\"fechaPasada\", pasada.toISOString().slice(0,10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"ID asignado por el servidor\", () => pm.expect(respuestaComercial.id).to.be.a(\"number\").above(0));",
+                  "pm.collectionVariables.set(\"clienteId\", respuestaComercial.id);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "02 Crear oportunidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/oportunidades",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Prueba comercial {{runId}}\",\n  \"canalOrigen\": \"WHATSAPP\",\n  \"cliente\": {\n    \"id\": {{clienteId}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"ID asignado por el servidor\", () => pm.expect(respuestaComercial.id).to.be.a(\"number\").above(0));",
+                  "pm.collectionVariables.set(\"oportunidadId\", respuestaComercial.id);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "03 Crear servicio de alquiler",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/servicios",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Alquiler de equipo {{runId}}\",\n  \"precioReferencial\": 180\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"ID asignado por el servidor\", () => pm.expect(respuestaComercial.id).to.be.a(\"number\").above(0));",
+                  "pm.collectionVariables.set(\"servicioId\", respuestaComercial.id);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "04 Crear producto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/productos",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Producto {{runId}}\",\n  \"precioReferencial\": 250\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"ID asignado por el servidor\", () => pm.expect(respuestaComercial.id).to.be.a(\"number\").above(0));",
+                  "pm.collectionVariables.set(\"productoId\", respuestaComercial.id);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2 Cotización y descuentos",
+      "item": [
+        {
+          "name": "05 Crear cotización en borrador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oportunidad\": {\n    \"id\": {{oportunidadId}}\n  },\n  \"alcanceServicio\": \"Prueba integrada de servicio, alquiler y venta de producto.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"ID asignado por el servidor\", () => pm.expect(respuestaComercial.id).to.be.a(\"number\").above(0));",
+                  "pm.collectionVariables.set(\"cotizacionId\", respuestaComercial.id);",
+                  "pm.collectionVariables.set(\"codigoCotizacion\", respuestaComercial.codigo);",
+                  "pm.test(\"Código y vigencia\", () => { pm.expect(respuestaComercial.codigo).to.match(/^COT-[0-9]{5,}$/); pm.expect(respuestaComercial.vigenciaDias).to.equal(15); });",
+                  "pm.test(\"Estado BORRADOR\", () => pm.expect(pm.response.json().estado).to.equal(\"BORRADOR\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "06 Bloquear envío sin detalles",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{cotizacionId}}/estado",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "\"ENVIADA\"",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "07 Agregar servicio con descuento por monto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/detalles-cotizacion",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cotizacion\": {\n    \"id\": {{cotizacionId}}\n  },\n  \"servicio\": {\n    \"id\": {{servicioId}}\n  },\n  \"descripcion\": \"Alquiler de equipo por día\",\n  \"cantidad\": 7,\n  \"precioUnitario\": 180,\n  \"tipoDescuento\": \"MONTO\",\n  \"valorDescuento\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"ID asignado por el servidor\", () => pm.expect(respuestaComercial.id).to.be.a(\"number\").above(0));",
+                  "pm.collectionVariables.set(\"detalleServicioId\", respuestaComercial.id);",
+                  "pm.test(\"Descuento y subtotal del alquiler\", () => { pm.expect(Number(respuestaComercial.descuentoTotal)).to.equal(210); pm.expect(Number(respuestaComercial.subtotal)).to.equal(1050); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "08 Agregar producto con descuento porcentual",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/detalles-cotizacion",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cotizacion\": {\n    \"id\": {{cotizacionId}}\n  },\n  \"producto\": {\n    \"id\": {{productoId}}\n  },\n  \"descripcion\": \"Venta de producto\",\n  \"cantidad\": 2,\n  \"precioUnitario\": 250,\n  \"tipoDescuento\": \"PORCENTAJE\",\n  \"valorDescuento\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"ID asignado por el servidor\", () => pm.expect(respuestaComercial.id).to.be.a(\"number\").above(0));",
+                  "pm.collectionVariables.set(\"detalleProductoId\", respuestaComercial.id);",
+                  "pm.test(\"Descuento y subtotal del producto\", () => { pm.expect(Number(respuestaComercial.descuentoTotal)).to.equal(50); pm.expect(Number(respuestaComercial.subtotal)).to.equal(450); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "09 Rechazar descuento excesivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/detalles-cotizacion",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cotizacion\": {\n    \"id\": {{cotizacionId}}\n  },\n  \"servicio\": {\n    \"id\": {{servicioId}}\n  },\n  \"descripcion\": \"Alquiler de equipo por día\",\n  \"cantidad\": 1,\n  \"precioUnitario\": 180,\n  \"tipoDescuento\": \"MONTO\",\n  \"valorDescuento\": 181\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "10 Consultar totales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{cotizacionId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Subtotal, IGV y total correctos\", () => {",
+                  "  pm.expect(Number(respuestaComercial.subtotal)).to.equal(1500);",
+                  "  pm.expect(Number(respuestaComercial.igv)).to.equal(270);",
+                  "  pm.expect(Number(respuestaComercial.total)).to.equal(1770);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "11 Verificar que solo existen dos detalles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/detalles-cotizacion/cotizacion/{{codigoCotizacion}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"La petición inválida no agregó una línea\", () => pm.expect(pm.response.json()).to.have.lengthOf(2));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "12 Comprobar precio original del servicio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/servicios/{{servicioId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Catálogo conserva 180\", () => pm.expect(Number(pm.response.json().precioReferencial)).to.equal(180));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "13 Comprobar precio original del producto",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/productos/{{productoId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Catálogo conserva 250\", () => pm.expect(Number(pm.response.json().precioReferencial)).to.equal(250));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "14 Descargar PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/pdf"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{codigoCotizacion}}/pdf",
+            "description": "En Postman se puede guardar la respuesta para abrir el PDF. La colección comprueba cabecera y firma del archivo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Respuesta PDF válida\", () => {",
+                  " pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/pdf\");",
+                  " pm.expect(pm.response.text().slice(0,5)).to.equal(\"%PDF-\");",
+                  " pm.expect(pm.response.headers.get(\"Content-Disposition\")).to.include(pm.collectionVariables.get(\"codigoCotizacion\") + \".pdf\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3 Envío y aceptación",
+      "item": [
+        {
+          "name": "15 Enviar cotización",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{cotizacionId}}/estado",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "\"ENVIADA\"",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Estado ENVIADA\", () => pm.expect(pm.response.json().estado).to.equal(\"ENVIADA\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "16 Bloquear edición de cabecera enviada",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{cotizacionId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oportunidad\": {\n    \"id\": {{oportunidadId}}\n  },\n  \"alcanceServicio\": \"Prueba integrada de servicio, alquiler y venta de producto.\",\n  \"vigenciaDias\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "17 Bloquear edición de detalle enviado",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/detalles-cotizacion/{{detalleServicioId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cotizacion\": {\n    \"id\": {{cotizacionId}}\n  },\n  \"servicio\": {\n    \"id\": {{servicioId}}\n  },\n  \"descripcion\": \"Alquiler de equipo por día\",\n  \"cantidad\": 7,\n  \"precioUnitario\": 180,\n  \"tipoDescuento\": \"MONTO\",\n  \"valorDescuento\": 40\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "18 Bloquear eliminación de detalle enviado",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/detalles-cotizacion/{{detalleServicioId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "19 Bloquear nuevas líneas después de enviar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/detalles-cotizacion",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cotizacion\": {\n    \"id\": {{cotizacionId}}\n  },\n  \"servicio\": {\n    \"id\": {{servicioId}}\n  },\n  \"descripcion\": \"Alquiler de equipo por día\",\n  \"cantidad\": 1,\n  \"precioUnitario\": 180,\n  \"tipoDescuento\": \"NINGUNO\",\n  \"valorDescuento\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "20 Impedir vencimiento prematuro",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{cotizacionId}}/estado",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "\"VENCIDA\"",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "21 Aceptar cotización",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{cotizacionId}}/estado",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "\"ACEPTADA\"",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Estado ACEPTADA\", () => pm.expect(pm.response.json().estado).to.equal(\"ACEPTADA\"));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Subtotal, IGV y total correctos\", () => {",
+                  "  pm.expect(Number(respuestaComercial.subtotal)).to.equal(1500);",
+                  "  pm.expect(Number(respuestaComercial.igv)).to.equal(270);",
+                  "  pm.expect(Number(respuestaComercial.total)).to.equal(1770);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "22 Consultar por código y verificar aceptación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/codigo/{{codigoCotizacion}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Estado ACEPTADA\", () => pm.expect(pm.response.json().estado).to.equal(\"ACEPTADA\"));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Subtotal, IGV y total correctos\", () => {",
+                  "  pm.expect(Number(respuestaComercial.subtotal)).to.equal(1500);",
+                  "  pm.expect(Number(respuestaComercial.igv)).to.equal(270);",
+                  "  pm.expect(Number(respuestaComercial.total)).to.equal(1770);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "23 Impedir reapertura de aceptada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{cotizacionId}}/estado",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "\"ENVIADA\"",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4 Rechazo",
+      "item": [
+        {
+          "name": "24 Crear otra cotización para rechazo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oportunidad\": {\n    \"id\": {{oportunidadId}}\n  },\n  \"alcanceServicio\": \"Prueba integrada de servicio, alquiler y venta de producto.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"ID asignado por el servidor\", () => pm.expect(respuestaComercial.id).to.be.a(\"number\").above(0));",
+                  "pm.collectionVariables.set(\"rechazoId\", respuestaComercial.id);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "25 Agregar concepto sin descuento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/detalles-cotizacion",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cotizacion\": {\n    \"id\": {{rechazoId}}\n  },\n  \"servicio\": {\n    \"id\": {{servicioId}}\n  },\n  \"descripcion\": \"Alquiler de equipo por día\",\n  \"cantidad\": 1,\n  \"precioUnitario\": 180,\n  \"tipoDescuento\": \"NINGUNO\",\n  \"valorDescuento\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Sin descuento\", () => { pm.expect(Number(respuestaComercial.descuentoTotal)).to.equal(0); pm.expect(Number(respuestaComercial.subtotal)).to.equal(180); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "26 Enviar segunda cotización",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{rechazoId}}/estado",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "\"ENVIADA\"",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Estado ENVIADA\", () => pm.expect(pm.response.json().estado).to.equal(\"ENVIADA\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "27 Rechazar segunda cotización",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{rechazoId}}/estado",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "\"RECHAZADA\"",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Estado RECHAZADA\", () => pm.expect(pm.response.json().estado).to.equal(\"RECHAZADA\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "28 Impedir reapertura de rechazada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{rechazoId}}/estado",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "\"ENVIADA\"",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5 Vencimiento",
+      "item": [
+        {
+          "name": "29 Crear borrador con fecha pasada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oportunidad\": {\n    \"id\": {{oportunidadId}}\n  },\n  \"alcanceServicio\": \"Prueba integrada de servicio, alquiler y venta de producto.\",\n  \"fechaEmision\": \"{{fechaPasada}}\",\n  \"vigenciaDias\": 15\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"ID asignado por el servidor\", () => pm.expect(respuestaComercial.id).to.be.a(\"number\").above(0));",
+                  "pm.collectionVariables.set(\"caducadaId\", respuestaComercial.id);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "30 Agregar detalle a borrador vencido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/detalles-cotizacion",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cotizacion\": {\n    \"id\": {{caducadaId}}\n  },\n  \"servicio\": {\n    \"id\": {{servicioId}}\n  },\n  \"descripcion\": \"Alquiler de equipo por día\",\n  \"cantidad\": 1,\n  \"precioUnitario\": 180,\n  \"tipoDescuento\": \"NINGUNO\",\n  \"valorDescuento\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "31 Bloquear envío del borrador vencido",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{caducadaId}}/estado",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "\"ENVIADA\"",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "32 Verificar que sigue en borrador",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/{{caducadaId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Estado BORRADOR\", () => pm.expect(pm.response.json().estado).to.equal(\"BORRADOR\"));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Subtotal, IGV y total correctos\", () => {",
+                  "  pm.expect(Number(respuestaComercial.subtotal)).to.equal(180);",
+                  "  pm.expect(Number(respuestaComercial.igv)).to.equal(32.4);",
+                  "  pm.expect(Number(respuestaComercial.total)).to.equal(212.4);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6 Consultas paginadas",
+      "item": [
+        {
+          "name": "33 Buscar cliente con paginación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/clientes/buscar?texto={{runId}}&activo=true&pagina=0&tamano=1&orden=razonSocial&direccion=asc",
+            "description": "Consultar docs/busquedas-paginadas.md. Ejecutar después de preparar los datos de la colección."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Cliente filtrado\", () => { pm.expect(respuestaComercial.contenido).to.have.lengthOf(1); pm.expect(respuestaComercial.contenido[0].id).to.equal(Number(pm.collectionVariables.get(\"clienteId\"))); });",
+                  "pm.test(\"Metadatos de página\", () => { pm.expect(respuestaComercial.pagina).to.equal(0); pm.expect(respuestaComercial.tamano).to.equal(1); pm.expect(respuestaComercial.totalElementos).to.equal(1); pm.expect(respuestaComercial.totalPaginas).to.equal(1); pm.expect(respuestaComercial.primera).to.equal(true); pm.expect(respuestaComercial.ultima).to.equal(true); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "34 Filtrar oportunidades paginadas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/oportunidades/buscar?texto={{runId}}&clienteId={{clienteId}}&etapa=NUEVA&canalOrigen=WHATSAPP&pagina=0&tamano=1&orden=fechaCreacion&direccion=desc",
+            "description": "Consultar docs/busquedas-paginadas.md. Ejecutar después de preparar los datos de la colección."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Oportunidad y cliente filtrados\", () => { pm.expect(respuestaComercial.contenido).to.have.lengthOf(1); pm.expect(respuestaComercial.contenido[0].id).to.equal(Number(pm.collectionVariables.get(\"oportunidadId\"))); pm.expect(respuestaComercial.contenido[0].cliente.id).to.equal(Number(pm.collectionVariables.get(\"clienteId\"))); });",
+                  "pm.test(\"Totales filtrados\", () => { pm.expect(respuestaComercial.totalElementos).to.equal(1); pm.expect(respuestaComercial.totalPaginas).to.equal(1); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "35 Consultar página sin contenido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/clientes/buscar?texto={{runId}}&pagina=1&tamano=1",
+            "description": "Consultar docs/busquedas-paginadas.md. Ejecutar después de preparar los datos de la colección."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Página vacía conserva total\", () => { pm.expect(respuestaComercial.contenido).to.have.lengthOf(0); pm.expect(respuestaComercial.pagina).to.equal(1); pm.expect(respuestaComercial.totalElementos).to.equal(1); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "36 Rechazar filtro de etapa inválido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/oportunidades/buscar?etapa=INVALIDA",
+            "description": "Consultar docs/busquedas-paginadas.md. Ejecutar después de preparar los datos de la colección."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7 Consultas de cotizaciones",
+      "item": [
+        {
+          "name": "37 Buscar cotización aceptada por filtros combinados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/buscar?codigo={{codigoCotizacion}}&clienteId={{clienteId}}&oportunidadId={{oportunidadId}}&estado=ACEPTADA&tamano=1&orden=total&direccion=desc",
+            "description": "Consulta paginada. Ejecutar después de preparar los datos de la colección. Ver docs/busquedas-paginadas.md."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Cotización y relaciones filtradas\", () => { pm.expect(respuestaComercial.contenido).to.have.lengthOf(1); const fila = respuestaComercial.contenido[0]; pm.expect(fila.id).to.equal(Number(pm.collectionVariables.get(\"cotizacionId\"))); pm.expect(fila.estado).to.equal(\"ACEPTADA\"); pm.expect(fila.oportunidad.id).to.equal(Number(pm.collectionVariables.get(\"oportunidadId\"))); pm.expect(fila.oportunidad.cliente.id).to.equal(Number(pm.collectionVariables.get(\"clienteId\"))); pm.expect(Number(fila.total)).to.equal(1770); });",
+                  "pm.test(\"Total filtrado\", () => { pm.expect(respuestaComercial.totalElementos).to.equal(1); pm.expect(respuestaComercial.totalPaginas).to.equal(1); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "38 Buscar cotización por fecha de emisión",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/buscar?clienteId={{clienteId}}&estado=BORRADOR&fechaDesde={{fechaPasada}}&fechaHasta={{fechaPasada}}",
+            "description": "Consulta paginada. Ejecutar después de preparar los datos de la colección. Ver docs/busquedas-paginadas.md."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Extremos de fecha inclusivos\", () => { pm.expect(respuestaComercial.contenido).to.have.lengthOf(1); pm.expect(respuestaComercial.contenido[0].id).to.equal(Number(pm.collectionVariables.get(\"caducadaId\"))); pm.expect(respuestaComercial.contenido[0].fechaEmision).to.equal(pm.collectionVariables.get(\"fechaPasada\")); });",
+                  "pm.test(\"Conteo del rango\", () => pm.expect(respuestaComercial.totalElementos).to.equal(1));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "39 Consultar página de cotizaciones sin contenido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/buscar?codigo={{codigoCotizacion}}&pagina=1&tamano=1",
+            "description": "Consulta paginada. Ejecutar después de preparar los datos de la colección. Ver docs/busquedas-paginadas.md."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Página vacía conserva total\", () => { pm.expect(respuestaComercial.contenido).to.have.lengthOf(0); pm.expect(respuestaComercial.pagina).to.equal(1); pm.expect(respuestaComercial.totalElementos).to.equal(1); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "40 Rechazar fecha inválida",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/buscar?fechaHasta=2026-02-30",
+            "description": "Consulta paginada. Ejecutar después de preparar los datos de la colección. Ver docs/busquedas-paginadas.md."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "41 Rechazar rango de fechas invertido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/cotizaciones/buscar?fechaDesde=2026-02-01&fechaHasta=2026-01-01",
+            "description": "Consulta paginada. Ejecutar después de preparar los datos de la colección. Ver docs/busquedas-paginadas.md."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8 Consultas de catálogos",
+      "item": [
+        {
+          "name": "42 Buscar servicio por nombre y activo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/servicios/buscar?texto={{runId}}&activo=true&tamano=1&orden=precioReferencial&direccion=asc",
+            "description": "Búsqueda paginada de catálogos. Ejecutar tras preparar la colección."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Concepto filtrado y precio conservado\", () => { pm.expect(respuestaComercial.contenido).to.have.lengthOf(1); pm.expect(respuestaComercial.contenido[0].id).to.equal(Number(pm.collectionVariables.get(\"servicioId\"))); pm.expect(Number(respuestaComercial.contenido[0].precioReferencial)).to.equal(180); });",
+                  "pm.test(\"Totales filtrados\", () => { pm.expect(respuestaComercial.totalElementos).to.equal(1); pm.expect(respuestaComercial.totalPaginas).to.equal(1); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "43 Buscar producto por nombre y activo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/productos/buscar?texto={{runId}}&activo=true&tamano=1&orden=nombre&direccion=asc",
+            "description": "Búsqueda paginada de catálogos. Ejecutar tras preparar la colección."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const respuestaComercial = pm.response.json();",
+                  "pm.test(\"Concepto filtrado y precio conservado\", () => { pm.expect(respuestaComercial.contenido).to.have.lengthOf(1); pm.expect(respuestaComercial.contenido[0].id).to.equal(Number(pm.collectionVariables.get(\"productoId\"))); pm.expect(Number(respuestaComercial.contenido[0].precioReferencial)).to.equal(250); });",
+                  "pm.test(\"Totales filtrados\", () => { pm.expect(respuestaComercial.totalElementos).to.equal(1); pm.expect(respuestaComercial.totalPaginas).to.equal(1); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "44 Consultar página de servicios sin contenido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/servicios/buscar?texto={{runId}}&pagina=1&tamano=1",
+            "description": "Consultar docs/busquedas-paginadas.md."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Página vacía conserva total\", () => { const respuestaComercial = pm.response.json(); pm.expect(respuestaComercial.contenido).to.have.lengthOf(0); pm.expect(respuestaComercial.totalElementos).to.equal(1); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "45 Rechazar orden de producto inválido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/productos/buscar?orden=descripcion",
+            "description": "Consultar docs/busquedas-paginadas.md."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error controlado\", () => pm.expect(pm.response.json().mensaje).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}

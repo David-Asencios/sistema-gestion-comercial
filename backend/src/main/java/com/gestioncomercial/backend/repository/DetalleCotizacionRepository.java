@@ -46,5 +46,22 @@ public interface DetalleCotizacionRepository
 
     boolean existsByCotizacionId(Long cotizacionId);
 
+    @Query("SELECT d.cotizacion.id FROM DetalleCotizacion d WHERE d.id = :id")
+    Optional<Long> buscarCotizacionId(@Param("id") Long id);
+
+    @Query("""
+        SELECT d FROM DetalleCotizacion d
+        JOIN FETCH d.cotizacion c
+        JOIN FETCH c.oportunidad o
+        JOIN FETCH o.cliente
+        LEFT JOIN FETCH d.servicio
+        LEFT JOIN FETCH d.producto
+        WHERE c.codigo = :codigo
+        ORDER BY d.id
+        """)
+    List<DetalleCotizacion> listarPorCodigoCotizacion(
+            @Param("codigo") String codigo
+    );
+
 
 }

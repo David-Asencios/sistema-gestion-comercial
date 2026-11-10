@@ -1,12 +1,15 @@
 package com.gestioncomercial.backend.exception;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -14,6 +17,24 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, String>> manejarParametroInvalido(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "mensaje", "El parámetro " + ex.getName() + " contiene un valor no válido"));
+    }
+
+    @ExceptionHandler({ConflictoConcurrenteException.class, ConcurrencyFailureException.class})
+    public ResponseEntity<Map<String, String>> manejarConflictoConcurrente(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "mensaje", "Otro proceso modificó o está utilizando la cotización. Actualice los datos y vuelva a intentarlo."));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> manejarJsonInvalido(HttpMessageNotReadableException ex) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "mensaje", "El JSON contiene un formato o un valor no válido"));
+    }
 
     @ExceptionHandler(RecursoNoEncontradoException.class)
     public ResponseEntity<Map<String, String>> manejarRecursoNoEncontrado( RecursoNoEncontradoException excepcion) {

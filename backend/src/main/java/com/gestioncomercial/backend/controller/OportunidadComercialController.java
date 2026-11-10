@@ -1,6 +1,11 @@
 package com.gestioncomercial.backend.controller;
 
-import com.gestioncomercial.backend.entity.OportunidadComercial;
+import com.gestioncomercial.backend.dto.OportunidadComercialMapper;
+import com.gestioncomercial.backend.dto.OportunidadComercialRequestDTO;
+import com.gestioncomercial.backend.dto.OportunidadComercialResponseDTO;
+import com.gestioncomercial.backend.dto.PaginaResponseDTO;
+import com.gestioncomercial.backend.entity.CanalOrigen;
+import com.gestioncomercial.backend.entity.EtapaOportunidad;
 import com.gestioncomercial.backend.service.OportunidadComercialService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -20,35 +25,55 @@ public class OportunidadComercialController {
     }
 
     @GetMapping
-    public ResponseEntity<List<OportunidadComercial>> listarOportunidades() {
+    public ResponseEntity<List<OportunidadComercialResponseDTO>> listarOportunidades() {
 
-        List<OportunidadComercial> oportunidades = oportunidadService.listarOportunidades();
+        List<OportunidadComercialResponseDTO> oportunidades = oportunidadService.listarOportunidades()
+                .stream().map(OportunidadComercialMapper::toResponse).toList();
 
         return ResponseEntity.ok(oportunidades);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<OportunidadComercial> buscarOportunidadPorId( @PathVariable Long id) {
+    @GetMapping("/buscar")
+    public ResponseEntity<PaginaResponseDTO<OportunidadComercialResponseDTO>> buscarOportunidades(
+            @RequestParam(required = false) String texto,
+            @RequestParam(required = false) Long clienteId,
+            @RequestParam(required = false) EtapaOportunidad etapa,
+            @RequestParam(required = false) CanalOrigen canalOrigen,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamano,
+            @RequestParam(defaultValue = "id") String orden,
+            @RequestParam(defaultValue = "asc") String direccion) {
+        var resultado = oportunidadService.buscarOportunidades(
+                texto, clienteId, etapa, canalOrigen, pagina, tamano, orden, direccion)
+                .map(OportunidadComercialMapper::toResponse);
+        return ResponseEntity.ok(PaginaResponseDTO.desde(resultado));
+    }
 
-        OportunidadComercial oportunidad = oportunidadService.buscarOportunidadPorId(id);
+    @GetMapping("/{id}")
+    public ResponseEntity<OportunidadComercialResponseDTO> buscarOportunidadPorId( @PathVariable Long id) {
+
+        OportunidadComercialResponseDTO oportunidad = OportunidadComercialMapper.toResponse(
+                oportunidadService.buscarOportunidadPorId(id));
 
         return ResponseEntity.ok(oportunidad);
     }
 
     @PostMapping
-    public ResponseEntity<OportunidadComercial> guardarOportunidad(
-            @Valid @RequestBody OportunidadComercial oportunidad) {
+    public ResponseEntity<OportunidadComercialResponseDTO> guardarOportunidad(
+            @Valid @RequestBody OportunidadComercialRequestDTO oportunidad) {
 
-        OportunidadComercial oportunidadGuardada = oportunidadService.guardarOportunidad(oportunidad);
+        OportunidadComercialResponseDTO oportunidadGuardada = OportunidadComercialMapper.toResponse(
+                oportunidadService.guardarOportunidad(OportunidadComercialMapper.toEntity(oportunidad)));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(oportunidadGuardada);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<OportunidadComercial> actualizarOportunidad(
-            @PathVariable Long id, @Valid @RequestBody OportunidadComercial oportunidad) {
+    public ResponseEntity<OportunidadComercialResponseDTO> actualizarOportunidad(
+            @PathVariable Long id, @Valid @RequestBody OportunidadComercialRequestDTO oportunidad) {
 
-        OportunidadComercial oportunidadActualizada = oportunidadService.actualizarOportunidadComercial(id,oportunidad);
+        OportunidadComercialResponseDTO oportunidadActualizada = OportunidadComercialMapper.toResponse(
+                oportunidadService.actualizarOportunidadComercial(id, OportunidadComercialMapper.toEntity(oportunidad)));
 
         return ResponseEntity.ok(oportunidadActualizada);
     }

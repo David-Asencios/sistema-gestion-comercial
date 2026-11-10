@@ -5,16 +5,21 @@ import com.gestioncomercial.backend.entity.Cotizacion;
 import com.gestioncomercial.backend.entity.DetalleCotizacion;
 import com.gestioncomercial.backend.entity.EstadoCotizacion;
 import com.gestioncomercial.backend.exception.RecursoNoEncontradoException;
+import com.gestioncomercial.backend.exception.ConflictoConcurrenteException;
 import com.gestioncomercial.backend.repository.CotizacionRepository;
 import com.gestioncomercial.backend.repository.DetalleCotizacionRepository;
 import com.gestioncomercial.backend.repository.ProductoRepository;
 import com.gestioncomercial.backend.repository.ServicioRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 @Service
 public class DetalleCotizacionService {
@@ -45,11 +50,11 @@ public class DetalleCotizacionService {
                         "Detalle de cotización no encontrado con ID: " + id));
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public DetalleCotizacion guardarDetalle(DetalleCotizacion detalle) {
         validarDetalle(detalle);
 
-        Cotizacion cotizacion = obtenerCotizacion(detalle);
+        Cotizacion cotizacion = bloquearCotizacion(obtenerCotizacionId(detalle));
         validarCotizacionEditable(cotizacion);
         asignarRelaciones(detalle, cotizacion);
 
@@ -65,30 +70,29 @@ public class DetalleCotizacionService {
     }
 
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public DetalleCotizacion actualizarDetalleCotizacion(
             Long id, DetalleCotizacion detalle) {
 
-        DetalleCotizacion detalleExistente = buscarDetallePorId(id);
         validarDetalle(detalle);
 
-        Long cotizacionAnteriorId =
-                detalleExistente.getCotizacion().getId();
-
-        Cotizacion cotizacionAnterior =
-                cotizacionRepository.findById(cotizacionAnteriorId)
-                        .orElseThrow(() -> new RecursoNoEncontradoException(
-                                "Cotización no encontrada con ID: "
-                                        + cotizacionAnteriorId));
-
+        Long cotizacionAnteriorId = buscarCotizacionIdDelDetalle(id);
+        Long nuevaCotizacionId = obtenerCotizacionId(detalle);
+        Map<Long, Cotizacion> bloqueadas = bloquearCotizaciones(cotizacionAnteriorId, nuevaCotizacionId);
+        // Leer el detalle después del bloqueo evita reutilizar una fotografía anterior a otra transacción.
+        DetalleCotizacion detalleExistente = buscarDetallePorId(id);
+        validarCotizacionDelDetalle(detalleExistente, cotizacionAnteriorId);
+        Cotizacion cotizacionAnterior = bloqueadas.get(cotizacionAnteriorId);
         validarCotizacionEditable(cotizacionAnterior);
 
-        Cotizacion nuevaCotizacion = obtenerCotizacion(detalle);
+        Cotizacion nuevaCotizacion = bloqueadas.get(nuevaCotizacionId);
         validarCotizacionEditable(nuevaCotizacion);
 
         detalleExistente.setDescripcion(detalle.getDescripcion());
         detalleExistente.setCantidad(detalle.getCantidad());
         detalleExistente.setPrecioUnitario(detalle.getPrecioUnitario());
+        detalleExistente.setTipoDescuento(detalle.getTipoDescuento());
+        detalleExistente.setValorDescuento(detalle.getValorDescuento());
         detalleExistente.setCotizacion(nuevaCotizacion);
 
         asignarRelaciones(detalleExistente, nuevaCotizacion, detalle);
@@ -110,15 +114,12 @@ public class DetalleCotizacionService {
     }
 
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void eliminarDetalle(Long id) {
+        Long cotizacionId = buscarCotizacionIdDelDetalle(id);
+        Cotizacion cotizacion = bloquearCotizacion(cotizacionId);
         DetalleCotizacion detalle = buscarDetallePorId(id);
-
-        Long cotizacionId = detalle.getCotizacion().getId();
-
-        Cotizacion cotizacion = cotizacionRepository.findById(cotizacionId)
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Cotización no encontrada con ID: " + cotizacionId));
+        validarCotizacionDelDetalle(detalle, cotizacionId);
 
         validarCotizacionEditable(cotizacion);
 
@@ -133,6 +134,11 @@ public class DetalleCotizacionService {
                     "El detalle de cotización es obligatorio");
         }
 
+        if (detalle.getDescripcion() == null || detalle.getDescripcion().isBlank()
+                || detalle.getDescripcion().length() > 200) {
+            throw new IllegalArgumentException("La descripción es obligatoria y admite hasta 200 caracteres");
+        }
+
         if (detalle.getCantidad() == null
                 || detalle.getCantidad().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException(
@@ -145,6 +151,9 @@ public class DetalleCotizacionService {
             throw new IllegalArgumentException(
                     "El precio unitario no puede ser negativo");
         }
+
+        validarDecimal(detalle.getCantidad(), 8, "cantidad");
+        validarDecimal(detalle.getPrecioUnitario(), 10, "precio unitario");
 
         boolean tieneServicio = detalle.getServicio() != null;
         boolean tieneProducto = detalle.getProducto() != null;
@@ -175,18 +184,39 @@ public class DetalleCotizacionService {
         }
     }
 
-    private Cotizacion obtenerCotizacion(DetalleCotizacion detalle) {
+    private Long obtenerCotizacionId(DetalleCotizacion detalle) {
         if (detalle.getCotizacion() == null
                 || detalle.getCotizacion().getId() == null) {
             throw new IllegalArgumentException(
                     "Debe indicar una cotización");
         }
 
-        Long cotizacionId = detalle.getCotizacion().getId();
+        return detalle.getCotizacion().getId();
+    }
 
-        return cotizacionRepository.findById(cotizacionId)
+    private Long buscarCotizacionIdDelDetalle(Long id) {
+        return detalleRepository.buscarCotizacionId(id).orElseThrow(() ->
+                new RecursoNoEncontradoException("Detalle de cotización no encontrado con ID: " + id));
+    }
+
+    private Cotizacion bloquearCotizacion(Long cotizacionId) {
+        return cotizacionRepository.buscarPorIdParaActualizar(cotizacionId)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Cotización no encontrada con ID: " + cotizacionId));
+    }
+
+    private Map<Long, Cotizacion> bloquearCotizaciones(Long anteriorId, Long nuevaId) {
+        Map<Long, Cotizacion> bloqueadas = new TreeMap<>();
+        for (Long id : new TreeSet<>(List.of(anteriorId, nuevaId))) {
+            bloqueadas.put(id, bloquearCotizacion(id));
+        }
+        return bloqueadas;
+    }
+
+    private void validarCotizacionDelDetalle(DetalleCotizacion detalle, Long cotizacionEsperada) {
+        if (!detalle.getCotizacion().getId().equals(cotizacionEsperada)) {
+            throw new ConflictoConcurrenteException("El detalle cambió de cotización durante la operación");
+        }
     }
 
     private void asignarRelaciones(
@@ -216,11 +246,64 @@ public class DetalleCotizacionService {
     }
 
     private void calcularSubtotal(DetalleCotizacion detalle) {
-        BigDecimal subtotal = detalle.getCantidad()
-                .multiply(detalle.getPrecioUnitario())
-                .setScale(2, RoundingMode.HALF_UP);
-
+        var tipo = detalle.getTipoDescuento() == null
+                ? DetalleCotizacion.TipoDescuento.NINGUNO : detalle.getTipoDescuento();
+        BigDecimal valor = detalle.getValorDescuento();
+        if (valor == null) {
+            if (tipo != DetalleCotizacion.TipoDescuento.NINGUNO) {
+                throw new IllegalArgumentException("Debe indicar el valor del descuento");
+            }
+            valor = BigDecimal.ZERO;
+        }
+        validarDecimal(valor, 10, "valor del descuento");
+        if (valor.signum() < 0) {
+            throw new IllegalArgumentException("El descuento no puede ser negativo");
+        }
+        BigDecimal precio = detalle.getPrecioUnitario().setScale(2, RoundingMode.UNNECESSARY);
+        BigDecimal descuento = switch (tipo) {
+            case NINGUNO -> {
+                if (valor.signum() != 0) {
+                    throw new IllegalArgumentException("Sin descuento, el valor debe ser cero");
+                }
+                yield BigDecimal.ZERO;
+            }
+            case MONTO -> {
+                if (valor.compareTo(precio) > 0) {
+                    throw new IllegalArgumentException("El descuento por unidad no puede superar el precio unitario");
+                }
+                yield valor;
+            }
+            case PORCENTAJE -> {
+                if (valor.compareTo(new BigDecimal("100")) > 0) {
+                    throw new IllegalArgumentException("El porcentaje de descuento no puede superar 100");
+                }
+                yield precio.multiply(valor).movePointLeft(2);
+            }
+        };
+        // Redondear primero por unidad; la línea se obtiene del bruto menos el descuento total.
+        descuento = descuento.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal bruto = precio.multiply(detalle.getCantidad()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal descuentoTotal = descuento.multiply(detalle.getCantidad()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal subtotal = bruto.subtract(descuentoTotal);
+        validarDecimal(descuentoTotal, 10, "descuento total");
+        validarDecimal(subtotal, 10, "subtotal");
+        detalle.setTipoDescuento(tipo);
+        detalle.setValorDescuento(valor.setScale(2, RoundingMode.UNNECESSARY));
+        detalle.setPrecioUnitario(precio);
+        detalle.setDescuentoUnitario(descuento);
+        detalle.setDescuentoTotal(descuentoTotal);
         detalle.setSubtotal(subtotal);
+    }
+
+    private void validarDecimal(BigDecimal valor, int enteros, String campo) {
+        try {
+            BigDecimal normalizado = valor.setScale(2, RoundingMode.UNNECESSARY);
+            if (normalizado.precision() > enteros + 2) {
+                throw new IllegalArgumentException("El campo " + campo + " supera el importe permitido");
+            }
+        } catch (ArithmeticException ex) {
+            throw new IllegalArgumentException("El campo " + campo + " admite como máximo dos decimales");
+        }
     }
 
     private void actualizarTotales(Cotizacion cotizacion) {
@@ -233,6 +316,10 @@ public class DetalleCotizacionService {
 
         BigDecimal total = subtotal.add(igv)
                 .setScale(2, RoundingMode.HALF_UP);
+
+        validarDecimal(subtotal, 10, "subtotal de cotización");
+        validarDecimal(igv, 10, "IGV");
+        validarDecimal(total, 10, "total de cotización");
 
         cotizacion.setSubtotal(subtotal);
         cotizacion.setIgv(igv);
@@ -247,6 +334,16 @@ public class DetalleCotizacionService {
                     "Solo se pueden modificar los detalles de cotizaciones en estado BORRADOR"
             );
         }
+    }
+
+    public List<DetalleCotizacion> listarPorCodigoCotizacion(String codigo) {
+
+        cotizacionRepository.findByCodigo(codigo)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Cotización no encontrada con código: " + codigo
+                ));
+
+        return detalleRepository.listarPorCodigoCotizacion(codigo);
     }
 
 }
